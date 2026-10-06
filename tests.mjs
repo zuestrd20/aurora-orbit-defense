@@ -12,6 +12,7 @@ function checkCaps(g) {
     assert.ok(g[key]>=0&&g[key]<=cap,`${key} ${g[key]} exceeds [0, ${cap}]`);
   }
   assert.ok(g.enemies.every(e=>Number.isFinite(e.x)&&Number.isFinite(e.y)&&Number.isFinite(e.hp)));
+  assert.ok(g.enemies.every(e=>e.x-e.radius>=0&&e.x+e.radius<=480),'whole ships stay within the horizontal playfield');
   assert.ok(g.events.length<=100);
   assert.ok(g.beams.length<1000);
   assert.ok(g.effects.length<1000);
@@ -151,6 +152,12 @@ test('complete 12-wave victories use only legal aim, upgrades, and abilities on 
   }
 });
 
+test('UI seed 7307 wins all 12 waves without any game-state mutations',()=>{
+  const {g}=campaign(7307,{observe(g,event){if(event.type==='upgrade')checkCaps(g);}});
+  assert.equal(g.state,'victory');assert.equal(g.wave,12);assert.ok(g.hp>0);
+  assert.equal(g.result.wave,12);assert.ok(g.time>=100&&g.time<180);
+});
+
 test('campaign replays include deterministic upgrade choices, score, and end state',()=>{
   const first=campaign(2026),second=campaign(2026);
   assert.deepEqual(first,second);
@@ -181,9 +188,9 @@ test('all ten upgrades are reachable and change their advertised mechanical stat
 });
 
 test('boss waves and splitter fragments occur in normal campaign progression',()=>{
-  const bossWaves=new Set();let shards=false,slowed=false;
+  const bossWaves=new Set();let shards=false;
   campaign(1,{skills:false,observe(g){
-    for(const e of g.enemies){if(e.type==='boss')bossWaves.add(g.wave);if(e.split)shards=true;if(e.slow>0)slowed=true;}
+    for(const e of g.enemies){if(e.type==='boss')bossWaves.add(g.wave);if(e.split)shards=true;}
   }});
   assert.deepEqual([...bossWaves],[4,8,12]);assert.equal(shards,true);
 });
